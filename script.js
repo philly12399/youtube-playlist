@@ -1,0 +1,144 @@
+let playList = [
+  {
+    videoId: "dBK0gKW61NU",
+    start: 222,
+    end: 224,
+  },
+  {
+    videoId: "LtCfuHLrixY",
+    start: 210,
+    end: 213,
+  },
+  {
+    videoId: "pU_nCvEq_Y4",
+    start: 18526,
+    end: 18529,
+  },
+  {
+    videoId: "EHpxi7khHb0",
+    start: 3008,
+    end: 3010,
+  },
+];
+
+let textarea = document.getElementById("playlist-object");
+textarea.value = JSON.stringify(playList);
+
+let currentId = 0;
+
+let updateButton = document.getElementById("update-button");
+updateButton.addEventListener("click", function (event) {
+  let playListString = document.getElementById("playlist-object").value;
+  try {
+    playList = JSON.parse(playListString);
+  } catch (exception) {
+    alert("JSON format error. Please check your input and try again.");
+    return;
+  }
+  currentId = 0;
+  updatePlayList();
+  player.loadVideoById({
+    videoId: playList[currentId].videoId,
+    startSeconds: playList[currentId].start,
+    endSeconds: playList[currentId].end,
+  });
+});
+
+let playListElement = document.getElementById("play-list");
+function updatePlayList() {
+  playListElement.innerHTML = "";
+  for (let i = 0; i < playList.length; i++) {
+    if (currentId == i)
+      playListElement.innerHTML += `<p>* ${i + 1}. ${playList[i].videoId}: ${
+        playList[i].start
+      } - ${playList[i].end}</p>`;
+    else
+      playListElement.innerHTML += `<p>  ${i + 1}. ${playList[i].videoId}: ${
+        playList[i].start
+      } - ${playList[i].end}</p>`;
+  }
+}
+
+let tag = document.createElement("script");
+tag.src = "https://www.youtube.com/iframe_api";
+
+let firstScriptTag = document.getElementById("youtube-tracking-script");
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+let player;
+
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player("video-youtube", {
+    height: "500px",
+    width: "1000px",
+    videoId: playList[0].videoId,
+    playerlets: {
+      autoplay: 0,
+      start: playList[0].start,
+      end: playList[0].end,
+    },
+    events: {
+      onStateChange: videoPlay,
+    },
+  });
+}
+
+let debouncing = false;
+
+function videoPlay(event) {
+  if (event.data == YT.PlayerState.PLAYING) {
+    debouncing = false;
+    console.log("YouTube Video is PLAYING!!");
+  }
+  if (event.data == YT.PlayerState.PAUSED) {
+    console.log("YouTube Video is PAUSED!!");
+  }
+
+  // after loading next video, before starting the next one, one extra end event will be passed,
+  // so need this debouncing logic
+  if (debouncing) return;
+  if (event.data == YT.PlayerState.ENDED) {
+    debouncing = true;
+    console.log("YouTube Video is ENDING!!");
+    currentId++;
+    if (playList[currentId]) {
+      player.loadVideoById({
+        videoId: playList[currentId].videoId,
+        startSeconds: playList[currentId].start,
+        endSeconds: playList[currentId].end,
+      });
+    }
+    updatePlayList();
+  }
+}
+
+const addForm = document.getElementById("add-form");
+addForm.addEventListener("submit", function (event) {
+  event.preventDefault();
+  let videoLink = document.getElementById("youtube-link").value;
+  let startTimeHour = parseInt(
+    document.getElementById("add-form").elements["start-time-hour"].value
+  );
+  let startTimeMinute = parseInt(
+    document.getElementById("add-form").elements["start-time-minute"].value
+  );
+  let startTimeSecond = parseInt(
+    document.getElementById("add-form").elements["start-time-second"].value
+  );
+  let endTimeHour = parseInt(
+    document.getElementById("add-form").elements["end-time-hour"].value
+  );
+  let endTimeMinute = parseInt(
+    document.getElementById("add-form").elements["end-time-minute"].value
+  );
+  let endTimeSecond = parseInt(
+    document.getElementById("add-form").elements["end-time-second"].value
+  );
+  playList.push({
+    videoId: videoLink.split("v=")[1],
+    start: startTimeHour * 60 * 60 + startTimeMinute * 60 + startTimeSecond,
+    end: endTimeHour * 60 * 60 + endTimeMinute * 60 + endTimeSecond,
+  });
+  textarea.value = JSON.stringify(playList);
+  updatePlayList();
+});
