@@ -10,22 +10,22 @@
 </head>
 <body>
     <div class="container">
-        <header class="header">
-            <h1>🎵 YouTube Playlist Manager</h1>
-            <a href="https://github.com/cytsunny/youtube-playlist/" class="pure-button pure-button-primary github-link" target="_blank">
-                <i>📂</i> Github Repository
-            </a>
-        </header>
-
         <div class="pure-g top-section">
             <div class="pure-u-1 pure-u-lg-2-3">
                 <div class="video-container">
                     <div id="video-youtube"></div>
+                    <div id="audio-only-mask" class="audio-only-mask" aria-hidden="true"></div>
                 </div>
             </div>
             <div class="pure-u-1 pure-u-lg-1-3">
                 <div class="playlist-panel">
                     <h2>📋 Current Playlist</h2>
+                    <div class="playlist-controls">
+                        <button id="prev-button" type="button" class="pure-button">⏮ Prev (Z)</button>
+                        <button id="play-pause-button" type="button" class="pure-button">⏯ Play/Pause (Space)</button>
+                        <button id="next-button" type="button" class="pure-button">⏭ Next (X)</button>
+                    </div>
+                    <button id="audio-only-button" type="button" class="pure-button pure-button-block">🎧 Audio Only: Off (C)</button>
                     <div id="play-list" class="playlist-items"></div>
                 </div>
             </div>
@@ -35,43 +35,35 @@
             <div class="pure-u-1 pure-u-md-1-2">
                 <div class="panel">
                     <h2>💾 Exportable Playlist</h2>
-                    <textarea id="playlist-object" class="pure-input-1" rows="15"></textarea>
+                    <label for="input-mode">Input Mode</label>
+                    <select id="input-mode" class="pure-input-1">
+                        <option value="json">JSON</option>
+                        <option value="text" selected>Text</option>
+                    </select>
+
+                    <div id="json-mode-panel">
+                        <label for="playlist-object">Playlist JSON</label>
+                        <textarea id="playlist-object" class="pure-input-1" rows="15"></textarea>
+                    </div>
+
+                    <div id="text-mode-panel" style="display: none;">
+                        <label for="playlist-video-url">Video URL</label>
+                        <input type="text" id="playlist-video-url" class="pure-input-1" placeholder="https://www.youtube.com/watch?v=...">
+
+                        <label for="playlist-timelines">Timeline Text</label>
+                        <textarea id="playlist-timelines" class="pure-input-1" rows="10" placeholder="01. 00:03:08 ~ only my railgun"></textarea>
+                    </div>
+
                     <button id="update-button" class="pure-button pure-button-primary pure-button-block">
                         🔄 Update and Play from Beginning
                     </button>
-                </div>
-            </div>
-            <div class="pure-u-1 pure-u-md-1-2">
-                <div class="panel">
-                    <h2>➕ Add New Video Clip</h2>
-                    <form id="add-form" class="pure-form pure-form-stacked">
-                        <fieldset>
-                            <label for="youtube-link">YouTube Link</label>
-                            <input type="text" id="youtube-link" class="pure-input-1" placeholder="https://www.youtube.com/watch?v=...">
-                            
-                            <label>Start Time</label>
-                            <div class="time-inputs">
-                                <input type="number" name="start-time-hour" value="0" min="0" placeholder="HH">
-                                <span>:</span>
-                                <input type="number" name="start-time-minute" value="0" min="0" max="59" placeholder="MM">
-                                <span>:</span>
-                                <input type="number" name="start-time-second" value="0" min="0" max="59" placeholder="SS">
-                            </div>
-                            
-                            <label>End Time</label>
-                            <div class="time-inputs">
-                                <input type="number" name="end-time-hour" value="0" min="0" placeholder="HH">
-                                <span>:</span>
-                                <input type="number" name="end-time-minute" value="0" min="0" max="59" placeholder="MM">
-                                <span>:</span>
-                                <input type="number" name="end-time-second" value="0" min="0" max="59" placeholder="SS">
-                            </div>
-                            
-                            <button type="submit" id="add-button" class="pure-button pure-button-primary pure-button-block">
-                                ➕ Add to Playlist
-                            </button>
-                        </fieldset>
-                    </form>
+                    <button id="import-button" class="pure-button pure-button-block">
+                        📥 Import JSON
+                    </button>
+                    <button id="export-button" class="pure-button pure-button-block">
+                        📤 Export Playlist
+                    </button>
+                    <input id="import-file-input" type="file" accept=".json,application/json" style="display: none;">
                 </div>
             </div>
         </div>

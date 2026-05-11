@@ -45,6 +45,7 @@ body {
 }
 
 .video-container {
+    position: relative;
     padding: 15px;
     background: #fafafa;
     border: 1px solid #ddd;
@@ -54,6 +55,18 @@ body {
     width: 100%;
     aspect-ratio: 16/9;
     background: #000;
+}
+
+.audio-only-mask {
+    position: absolute;
+    inset: 15px;
+    background: #000;
+    display: none;
+    pointer-events: none;
+}
+
+.video-container.audio-only .audio-only-mask {
+    display: block;
 }
 
 .playlist-panel {
@@ -76,12 +89,44 @@ body {
     overflow-y: auto;
 }
 
-.playlist-items p {
+.playlist-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.playlist-controls .pure-button {
+    flex: 1;
+    background: #555;
+    color: #fff;
+    border: 1px solid #666;
+}
+
+.playlist-controls .pure-button:hover {
+    background: #666;
+}
+
+.playlist-item {
+    display: block;
+    width: 100%;
     margin: 8px 0;
     padding: 10px;
+    border: none;
+    text-align: left;
     background: white;
     color: #333;
     font-size: 0.9em;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.playlist-item:hover {
+    background: #efefef;
+}
+
+.playlist-item.active {
+    background: #dcdcdc;
+    font-weight: 600;
 }
 
 .panel {
@@ -108,7 +153,29 @@ body {
     margin-bottom: 15px;
 }
 
+#input-mode {
+    margin-bottom: 15px;
+}
+
+#playlist-video-url,
+#playlist-timelines {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    resize: vertical;
+    margin-bottom: 15px;
+}
+
 #playlist-object:focus {
+    outline: none;
+    border-color: #333;
+}
+
+#playlist-video-url:focus,
+#playlist-timelines:focus,
+#input-mode:focus {
     outline: none;
     border-color: #333;
 }
