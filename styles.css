@@ -4,19 +4,21 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-    background: #f5f5f5;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f0f0f; /* 深色背景更有質感 */
     margin: 0;
     padding: 20px;
-    color: #333;
+    color: #f1f1f1;
 }
 
 .container {
-    max-width: 1400px;
+    max-width: 1300px;
     margin: 0 auto;
-    background: white;
-    border: 1px solid #ddd;
-    padding: 30px;
+    background: #1e1e1e;
+    border: none;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
 /* Header */
@@ -31,7 +33,7 @@ body {
     margin: 0 0 15px 0;
     font-size: 2em;
     font-weight: 600;
-    color: #000;
+    color: #fff;
 }
 
 .github-link {
@@ -46,9 +48,11 @@ body {
 
 .video-container {
     position: relative;
-    padding: 15px;
-    background: #fafafa;
-    border: 1px solid #ddd;
+    padding: 10px;
+    background: #000;
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 #video-youtube {
@@ -59,10 +63,11 @@ body {
 
 .audio-only-mask {
     position: absolute;
-    inset: 15px;
+    inset: 0;
     background: #000;
     display: none;
     pointer-events: none;
+    z-index: 10;
 }
 
 .video-container.audio-only .audio-only-mask {
@@ -70,10 +75,13 @@ body {
 }
 
 .playlist-panel {
-    background: #333;
+    background: #181818;
     padding: 20px;
     color: white;
     height: 100%;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
 }
 
 .playlist-panel h2 {
@@ -83,10 +91,12 @@ body {
 }
 
 .playlist-items {
-    background: #444;
-    padding: 15px;
+    background: transparent;
+    padding: 0;
     max-height: 400px;
     overflow-y: auto;
+    flex-grow: 1;
+    border-top: 1px solid #333;
 }
 
 .playlist-controls {
@@ -113,40 +123,45 @@ body {
     padding: 10px;
     border: none;
     text-align: left;
-    background: white;
-    color: #333;
+    background: transparent;
+    color: #efefef;
     font-size: 0.9em;
     cursor: pointer;
     transition: background-color 0.15s ease;
 }
 
 .playlist-item:hover {
-    background: #efefef;
+    background: #2a2a2a;
 }
 
 .playlist-item.active {
-    background: #dcdcdc;
+    background: #3e3e3e;
+    border-left: 4px solid #ff0000;
     font-weight: 600;
 }
 
 .panel {
-    background: white;
+    background: #1e1e1e;
     padding: 25px;
+    color: #f1f1f1;
 }
 
 .panel h2 {
     margin-top: 0;
     font-size: 1.3em;
     font-weight: 600;
-    color: #000;
+    color: #fff;
     margin-bottom: 20px;
 }
 
 /* Form Styling */
 #playlist-object {
+    background: #121212;
+    color: #22c55e;
+    border: 1px solid #333;
+    border-radius: 6px;
     width: 100%;
     padding: 12px;
-    border: 1px solid #ccc;
     font-family: 'Courier New', monospace;
     font-size: 0.9em;
     resize: vertical;
@@ -159,9 +174,12 @@ body {
 
 #playlist-video-url,
 #playlist-timelines {
+    background: #121212;
+    color: #fff;
+    border: 1px solid #333;
+    border-radius: 6px;
     width: 100%;
     padding: 12px;
-    border: 1px solid #ccc;
     font-family: 'Courier New', monospace;
     font-size: 0.9em;
     resize: vertical;
@@ -224,6 +242,48 @@ body {
     margin-top: 10px;
 }
 
+.library-panel {
+    background: #181818;
+    color: white;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.library-items {
+    background: #222;
+    border: 1px solid #333;
+    border-radius: 4px;
+    min-height: 200px;
+}
+
+.library-wrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-right: 10px;
+}
+
+.lib-text {
+    flex-grow: 1;
+    padding: 10px;
+    cursor: pointer;
+}
+
+.lib-del-btn {
+    background: transparent;
+    border: none;
+    color: #666;
+    font-size: 1.2em;
+    cursor: pointer;
+    padding: 5px 10px;
+    transition: color 0.2s;
+}
+
+.lib-del-btn:hover {
+    color: #ff4d4d;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
     .video-container {
@@ -245,4 +305,3 @@ body {
         margin: 10px 0;
     }
 }
-

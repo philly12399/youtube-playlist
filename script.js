@@ -1,8 +1,8 @@
 let playList = [
   {
-    videoId: "",
+    videoId: "dQw4w9WgXcQ", // Default to a well-known video
     start: 0,
-    end: 0,
+    end: 200,
   },
 ];
 
@@ -17,7 +17,118 @@ let prevButton = document.getElementById("prev-button");
 let nextButton = document.getElementById("next-button");
 let playPauseButton = document.getElementById("play-pause-button");
 let audioOnlyButton = document.getElementById("audio-only-button");
+let savePlaylistButton = document.getElementById("save-playlist-button");
 let isAudioOnlyMode = false;
+let currentId = 0;
+
+const STORAGE_KEY = "yt_playlist_manager_data";
+const LIBRARY_KEY = "yt_playlist_library_collection";
+
+function saveToStorage() {
+  const data = {
+    playList,
+    currentId,
+    isAudioOnlyMode,
+    inputMode: inputModeSelect.value // 儲存目前的輸入模式
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+function loadFromStorage() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      if (data.playList) playList = data.playList;
+      if (typeof data.currentId === 'number') currentId = data.currentId;
+      if (typeof data.isAudioOnlyMode === 'boolean') isAudioOnlyMode = data.isAudioOnlyMode;
+      if (data.inputMode) inputModeSelect.value = data.inputMode;
+    }
+  } catch (e) {
+    console.error("Failed to load state from storage", e);
+  }
+}
+
+// 處理多組歌單庫的功能
+function saveCurrentPlaylistToLibrary(playlistNameOverride = null) {
+  if (!playList || playList.length === 0 || !playList[0].videoId) return;
+
+  let library = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "{}");
+  
+  // 取得一個名稱，優先順序：YouTube 影片標題 > 第一首曲目標題 > Video ID
+  let playlistName = "Untitled Playlist";
+  if (!playlistNameOverride) {
+    if (player && typeof player.getVideoData === "function" && player.getVideoData().title) {
+      playlistName = player.getVideoData().title;
+    } else if (playList[0].title) {
+      playlistName = playList[0].title;
+    } else {
+      playlistName = `Video: ${playList[0].videoId}`;
+    }
+    
+    // Prompt user for name, pre-filling with the default
+    let newName = prompt("Enter a name for this playlist:", playlistName);
+    if (!newName) return; // User cancelled
+    playlistName = newName.trim();
+    if (!playlistName) {
+      alert("Playlist name cannot be empty.");
+      return;
+    }
+  } else {
+    playlistName = playlistNameOverride;
+  }
+
+  if (library[playlistName] && !confirm(`Playlist "${playlistName}" already exists. Overwrite?`)) {
+    return; // User chose not to overwrite
+  }
+
+  library[playlistName] = {
+    playList: JSON.parse(JSON.stringify(playList)), // Deep copy
+    inputMode: inputModeSelect.value,
+    currentId: currentId // Also save the current playing index for this saved playlist
+  };
+
+  localStorage.setItem(LIBRARY_KEY, JSON.stringify(library));
+  renderLibraryMenu();
+  alert(`Playlist "${playlistName}" saved to library.`);
+}
+
+function deletePlaylistFromLibrary(name) {
+  if (!confirm(`Are you sure you want to delete playlist "${name}" from the library? This cannot be undone.`)) {
+    return;
+  }
+
+  let library = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "{}");
+  delete library[name];
+  localStorage.setItem(LIBRARY_KEY, JSON.stringify(library));
+  renderLibraryMenu();
+}
+
+function renderLibraryMenu() {
+  const libraryList = document.getElementById("library-list");
+  if (!libraryList) return;
+
+  const library = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "{}");
+  libraryList.innerHTML = '';
+
+  Object.keys(library).forEach(name => {
+    const itemDiv = document.createElement("div");
+    itemDiv.className = "playlist-item library-wrap";
+    
+    itemDiv.innerHTML = `
+      <span class="lib-text">📂 ${name}</span>
+      <button class="lib-del-btn" title="Delete Playlist">✕</button>
+    `;
+
+    itemDiv.querySelector(".lib-text").onclick = () => loadLibraryPlaylist(name);
+    itemDiv.querySelector(".lib-del-btn").onclick = (e) => {
+      e.stopPropagation();
+      deletePlaylistFromLibrary(name);
+    };
+
+    libraryList.appendChild(itemDiv);
+  });
+}
 
 function formatSecondsToText(totalSeconds) {
   const h = Math.floor(totalSeconds / 3600);
@@ -138,9 +249,8 @@ function parseTimelineTextFromJumpExtension(text, defaultAddSeconds = 300) {
 
 inputModeSelect.addEventListener("change", function () {
   applyInputMode(inputModeSelect.value);
+  saveToStorage(); // 切換模式時也儲存
 });
-
-let currentId = 0;
 
 function playByIndex(index) {
   if (!playList[index]) return;
@@ -152,6 +262,7 @@ function playByIndex(index) {
     startSeconds: playList[currentId].start,
     endSeconds: playList[currentId].end,
   });
+  saveToStorage();
 }
 
 function playPrevious() {
@@ -196,6 +307,7 @@ function toggleAudioOnlyMode() {
   isAudioOnlyMode = !isAudioOnlyMode;
   videoContainer.classList.toggle("audio-only", isAudioOnlyMode);
   updateAudioOnlyButtonLabel();
+  saveToStorage();
 }
 
 prevButton.addEventListener("click", playPrevious);
@@ -282,7 +394,25 @@ updateButton.addEventListener("click", function (event) {
   currentId = 0;
   syncInputFieldsFromPlaylist();
   playByIndex(currentId);
+  saveToStorage();
 });
+
+function loadLibraryPlaylist(name) {
+  const library = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "{}");
+  const data = library[name];
+  if (data) {
+    playList = data.playList;
+    inputModeSelect.value = data.inputMode || "text";
+    currentId = data.currentId || 0;
+    applyInputMode(inputModeSelect.value);
+    syncInputFieldsFromPlaylist();
+    updatePlayList();
+    playByIndex(currentId);
+    saveToStorage();
+  }
+}
+
+savePlaylistButton.addEventListener("click", () => saveCurrentPlaylistToLibrary());
 
 function downloadTextFile(filename, content, mimeType) {
   const blob = new Blob([content], { type: mimeType });
@@ -310,6 +440,7 @@ function getSafeExportFileName() {
     .trim();
   return `${sanitized || "youtube-playlist"}.json`;
 }
+
 
 exportButton.addEventListener("click", function () {
   syncInputFieldsFromPlaylist();
@@ -367,6 +498,7 @@ importFileInput.addEventListener("change", function (event) {
       syncInputFieldsFromPlaylist();
       updatePlayList();
       playByIndex(currentId);
+      saveToStorage();
     } catch (error) {
       alert(`Import failed: ${error.message}`);
     } finally {
@@ -404,11 +536,14 @@ playListElement.addEventListener("click", function (event) {
   playByIndex(index);
 });
 
+loadFromStorage();
 updatePlayList();
 syncInputFieldsFromPlaylist();
-inputModeSelect.value = "text";
+// 移除硬編碼的 "text"，改用從 Storage 讀取的內容
 applyInputMode(inputModeSelect.value);
 updateAudioOnlyButtonLabel();
+videoContainer.classList.toggle("audio-only", isAudioOnlyMode);
+renderLibraryMenu();
 
 let tag = document.createElement("script");
 tag.src = "https://www.youtube.com/iframe_api";
@@ -422,11 +557,11 @@ function onYouTubeIframeAPIReady() {
   player = new YT.Player("video-youtube", {
     height: "500px",
     width: "1000px",
-    videoId: playList[0].videoId,
-    playerlets: {
-      autoplay: 0,
-      start: playList[0].start,
-      end: playList[0].end,
+    videoId: playList[currentId] && playList[currentId].videoId ? playList[currentId].videoId : "", // Handle empty playlist
+    playerVars: { // 修正參數名稱從 playerlets 改為 playerVars
+      autoplay: 0, // Autoplay is generally not allowed without user interaction
+      start: playList[currentId] && playList[currentId].start ? playList[currentId].start : 0, // Handle empty playlist
+      end: playList[currentId] && playList[currentId].end ? playList[currentId].end : 0, // Handle empty playlist
     },
     events: {
       onStateChange: videoPlay,
@@ -460,4 +595,3 @@ function videoPlay(event) {
     updatePlayList();
   }
 }
-
