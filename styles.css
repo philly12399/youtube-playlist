@@ -21,6 +21,29 @@ body {
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 
+.main-video-title {
+    text-align: center;
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 2.2em;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.current-track-title {
+    text-align: center;
+    margin-bottom: 25px;
+    font-size: 1.6em;
+    color: #fff;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    min-height: 1.2em;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #333;
+}
+
 /* Header */
 .header {
     text-align: center;
@@ -63,11 +86,12 @@ body {
 
 .audio-only-mask {
     position: absolute;
-    inset: 0;
+    inset: -1px; /* 稍微擴大以覆蓋邊框 */
     background: #000;
     display: none;
     pointer-events: none;
     z-index: 10;
+    border-radius: inherit; /* 繼承容器的圓角設定 */
 }
 
 .video-container.audio-only .audio-only-mask {
@@ -110,6 +134,8 @@ body {
     background: #555;
     color: #fff;
     border: 1px solid #666;
+    font-size: 0.85em;
+    padding: 6px 12px;
 }
 
 .playlist-controls .pure-button:hover {
@@ -138,6 +164,21 @@ body {
     background: #3e3e3e;
     border-left: 4px solid #ff0000;
     font-weight: 600;
+}
+
+.playlist-item.active-library-playlist {
+    background: #3e3e3e; /* 與當前播放歌曲相同的背景色 */
+    border-left: 4px solid #ff0000; /* 紅色左邊框 */
+    font-weight: 600;
+    color: #fff; /* 確保文字顏色在深色背景下可見 */
+}
+
+.playlist-index {
+    font-family: 'Courier New', Courier, monospace;
+    font-weight: 800;
+    color: #ff0000; /* YouTube 紅 */
+    font-size: 1.1em;
+    margin-right: 2px;
 }
 
 .panel {
@@ -239,7 +280,8 @@ body {
 
 .pure-button-block {
     width: 100%;
-    margin-top: 10px;
+    margin-top: 8px;
+    padding: 8px 12px;
 }
 
 .library-panel {
@@ -264,10 +306,25 @@ body {
     padding-right: 10px;
 }
 
-.lib-text {
+.lib-content-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     flex-grow: 1;
-    padding: 10px;
     cursor: pointer;
+    padding: 5px 10px;
+}
+
+.lib-thumb {
+    width: 60px;
+    height: 34px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: #000;
+}
+
+.lib-text {
+    font-weight: 500;
 }
 
 .lib-del-btn {
@@ -282,6 +339,15 @@ body {
 
 .lib-del-btn:hover {
     color: #ff4d4d;
+}
+
+/* Library Collapse States */
+.library-collapsed #library-toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.library-collapsed #library-content {
+    display: none;
 }
 
 /* Responsive Design */
@@ -304,4 +370,37 @@ body {
     .panel {
         margin: 10px 0;
     }
+}
+
+/* Toast Notification Styles */
+#toast-notification {
+    visibility: hidden; /* Hidden by default */
+    min-width: 250px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 8px;
+    padding: 16px;
+    position: fixed;
+    z-index: 1000;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    font-size: 1em;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    opacity: 0;
+    transition: opacity 0.5s, visibility 0.5s;
+}
+
+#toast-notification.toast-show {
+    visibility: visible;
+    opacity: 1;
+}
+
+#toast-notification.toast-success {
+    background-color: #28a745; /* Green for success */
+}
+
+#toast-notification.toast-error {
+    background-color: #dc3545; /* Red for error */
 }
