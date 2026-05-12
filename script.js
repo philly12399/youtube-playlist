@@ -3,6 +3,8 @@ import * as store from './storage.js';
 import * as ui from './ui.js';
 import * as yt from './youtube-player.js';
 
+const APP_VERSION = "1.0.0";
+
 let playList = [
   {
     videoId: "dQw4w9WgXcQ", // Default to a well-known video
@@ -558,6 +560,11 @@ importFileInput?.addEventListener("change", function (event) {
   reader.readAsText(file);
 });
 
+function initVersionDisplay() {
+  const versionElement = document.getElementById("version-display");
+  if (versionElement) versionElement.textContent = `v${APP_VERSION}`;
+}
+
 function togglePlaylistCollapse() {
   isPlaylistCollapsed = !isPlaylistCollapsed;
   applyPlaylistCollapse();
@@ -577,6 +584,7 @@ updatePlayList();
 syncInputFieldsFromPlaylist();
 // 移除硬編碼的 "text"，改用從 Storage 讀取的內容
 if (inputModeSelect) applyInputMode(inputModeSelect.value);
+initVersionDisplay();
 updateAudioOnlyButtonLabel();
 videoContainer?.classList.toggle("audio-only", isAudioOnlyMode);
 applyPlaylistCollapse();
