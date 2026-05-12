@@ -78,6 +78,23 @@ body {
     overflow: hidden;
 }
 
+/* 播放清單摺疊邏輯 */
+@media (min-width: 1024px) {
+    #video-col, #playlist-col {
+        transition: width 0.3s ease, opacity 0.3s ease;
+    }
+
+    .playlist-hidden #video-col {
+        width: 100% !important;
+    }
+
+    .playlist-hidden #playlist-col {
+        width: 0% !important;
+        opacity: 0;
+        display: none !important;
+    }
+}
+
 #video-youtube {
     width: 100%;
     aspect-ratio: 16/9;

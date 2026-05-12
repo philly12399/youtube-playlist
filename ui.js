@@ -39,6 +39,7 @@ export function adjustFontSize(element, originalSize) {
 export function renderPlayList(container, playList, currentId) {
   if (!container) return;
   container.innerHTML = "";
+
   playList.forEach((item, i) => {
     const startText = utils.formatSecondsToText(item.start);
     const endText = utils.formatSecondsToText(item.end);
@@ -49,6 +50,25 @@ export function renderPlayList(container, playList, currentId) {
     btn.innerHTML = `<span class="playlist-index">${i + 1}</span>. ${startText} ~ ${endText}${item.title ? `  ${item.title}` : ""}`;
     container.appendChild(btn);
   });
+
+  updatePlaylistCount(playList, currentId);
+}
+
+/**
+ * 統一更新 歌曲/總數 顯示
+ */
+function updatePlaylistCount(playList, currentId) {
+  const countElement = document.getElementById("playlist-count");
+  if (!countElement) return;
+
+  if (Array.isArray(playList) && playList.length > 0) {
+    // 確保 currentId 是有效數字，且不會超出陣列長度
+    const validId = typeof currentId === 'number' ? currentId : 0;
+    const safeCurrent = Math.min(Math.max(0, validId), playList.length - 1);
+    countElement.textContent = `(${safeCurrent + 1} / ${playList.length})`;
+  } else {
+    countElement.textContent = "(0 / 0)";
+  }
 }
 
 /**
@@ -73,6 +93,8 @@ export function updateTitles(player, playList, currentId) {
     trackElement.textContent = (currentItem && currentItem.title) ? `🎤：${currentItem.title}` : "";
     adjustFontSize(trackElement, 1.6);
   }
+
+  updatePlaylistCount(playList, currentId);
 }
 
 /**

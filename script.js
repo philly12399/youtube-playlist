@@ -1,6 +1,7 @@
 import * as utils from './utils.js';
 import * as store from './storage.js';
 import * as ui from './ui.js';
+import * as yt from './youtube-player.js';
 
 let playList = [
   {
@@ -14,6 +15,8 @@ let textarea = document.getElementById("playlist-object");
 let inputModeSelect = document.getElementById("input-mode");
 let jsonModePanel = document.getElementById("json-mode-panel");
 let textModePanel = document.getElementById("text-mode-panel");
+let durationSettingWrapper = document.getElementById("duration-setting-wrapper");
+let defaultDurationInput = document.getElementById("default-video-duration");
 let videoUrlInput = document.getElementById("playlist-video-url");
 let timelineTextarea = document.getElementById("playlist-timelines");
 let videoContainer = document.querySelector(".video-container");
@@ -27,6 +30,7 @@ let importLibraryButton = document.getElementById("import-library-button");
 let importLibraryInput = document.getElementById("import-library-input");
 let isAudioOnlyMode = false;
 let isLibraryCollapsed = false;
+let isPlaylistCollapsed = false;
 let activeLibraryName = null;
 let currentId = 0;
 
@@ -35,7 +39,10 @@ if (!playListElement) {
   console.error("Critical: 'play-list' element not found.");
 }
 
-const updatePlayList = () => ui.renderPlayList(playListElement, playList, currentId);
+const updatePlayList = () => {
+  ui.renderPlayList(playListElement, playList, currentId);
+  ui.updateTitles(yt.getPlayer(), playList, currentId);
+};
 
 playListElement?.addEventListener("click", function (event) {
   const target = event.target.closest(".playlist-item");
@@ -57,6 +64,7 @@ function saveToStorage() {
     isAudioOnlyMode,
     inputMode: inputModeSelect.value, // 儲存目前的輸入模式
     isLibraryCollapsed,
+    isPlaylistCollapsed,
     activeLibraryName
   });
 }
@@ -64,11 +72,12 @@ function saveToStorage() {
 function loadFromStorage() {
   const data = store.loadState();
   if (data) {
-    if (data.playList) playList = data.playList;
+    if (Array.isArray(data.playList)) playList = data.playList;
     if (typeof data.currentId === 'number') currentId = data.currentId;
     if (typeof data.isAudioOnlyMode === 'boolean') isAudioOnlyMode = data.isAudioOnlyMode;
     if (data.inputMode) inputModeSelect.value = data.inputMode;
     if (typeof data.isLibraryCollapsed === 'boolean') isLibraryCollapsed = data.isLibraryCollapsed;
+    if (typeof data.isPlaylistCollapsed === 'boolean') isPlaylistCollapsed = data.isPlaylistCollapsed;
     if (data.activeLibraryName) activeLibraryName = data.activeLibraryName;
   }
 }
@@ -86,7 +95,8 @@ function saveCurrentPlaylistToLibrary(playlistNameOverride = null) {
   let playlistName = playlistNameOverride || activeLibraryName;
 
   if (!playlistName) {
-    if (player && typeof player.getVideoData === "function" && player.getVideoData().title) {
+    const player = yt.getPlayer();
+    if (player && typeof player.getVideoData === "function" && player.getVideoData()?.title) {
       playlistName = player.getVideoData().title;
     } else if (playList[0].title) {
       playlistName = playList[0].title;
@@ -154,13 +164,19 @@ function applyInputMode(mode) {
   const useTextMode = mode === "text";
   jsonModePanel.style.display = useTextMode ? "none" : "block";
   textModePanel.style.display = useTextMode ? "block" : "none";
+  if (durationSettingWrapper) durationSettingWrapper.style.display = useTextMode ? "block" : "none";
 }
 
 function playByIndex(index) {
-  if (!playList[index]) return;
-  currentId = index;
+  if (!playList || playList.length === 0) {
+    updatePlayList();
+    return;
+  }
+  
+  const safeIndex = Math.min(Math.max(0, index), playList.length - 1);
+  currentId = safeIndex;
+  
   updatePlayList();
-  ui.updateTitles(player, playList, currentId);
   
   // 自動捲動到當前播放項目
   const activeItem = playListElement?.querySelector(".playlist-item.active");
@@ -168,12 +184,11 @@ function playByIndex(index) {
     activeItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
-  if (!player || typeof player.loadVideoById !== "function") return;
-  player.loadVideoById({
-    videoId: playList[currentId].videoId,
-    startSeconds: playList[currentId].start,
-    endSeconds: playList[currentId].end,
-  });
+  yt.loadVideo(
+    playList[currentId].videoId,
+    playList[currentId].start,
+    playList[currentId].end
+  );
   saveToStorage();
 }
 
@@ -190,24 +205,11 @@ function playNext() {
 }
 
 function togglePlayPause() {
-  if (!player || typeof player.getPlayerState !== "function") return;
-  const state = player.getPlayerState();
-  if (state === YT.PlayerState.PLAYING) {
-    player.pauseVideo();
-  } else {
-    player.playVideo();
-  }
+  yt.togglePlay();
 }
 
 function updatePlayPauseButtonLabel() {
-  if (!playPauseButton) return;
-  if (!player || typeof player.getPlayerState !== "function" || !YT?.PlayerState) {
-    playPauseButton.textContent = "⏯ Play/Pause (Space)";
-    return;
-  }
-  const state = player.getPlayerState();
-  playPauseButton.textContent =
-    state === YT.PlayerState.PLAYING ? "⏸ Pause (Space)" : "▶ Play (Space)";
+  yt.updatePlayPauseButton(playPauseButton);
 }
 
 function updateAudioOnlyButtonLabel() {
@@ -279,6 +281,10 @@ updateButton?.addEventListener("click", function (event) {
     let playListString = textarea?.value || "[]";
     try {
       playList = JSON.parse(playListString);
+      if (!Array.isArray(playList)) {
+        alert("JSON must be an array of tracks.");
+        return;
+      }
     } catch (exception) {
       alert("JSON format error. Please check your input and try again.");
       return;
@@ -290,7 +296,19 @@ updateButton?.addEventListener("click", function (event) {
       return;
     }
 
-    const parsedRows = utils.parseTimelineText(timelineTextarea?.value);
+    // 針對 defaultDurationInput 進行更嚴謹的數值解析
+    const rawDuration = defaultDurationInput?.value;
+    let defaultDuration = 300; // 預設值
+
+    if (rawDuration !== undefined && rawDuration !== null && rawDuration.trim() !== '') {
+      const parsed = parseInt(rawDuration, 10); // 確保使用十進位解析
+      if (!isNaN(parsed) && parsed >= 1) { // 確保是有效數字且大於等於 1
+        defaultDuration = parsed;
+      }
+    }
+    console.log("Default Duration Input Value:", rawDuration, "-> Parsed Default Duration:", defaultDuration); // 除錯日誌
+
+    const parsedRows = utils.parseTimelineText(timelineTextarea?.value, defaultDuration);
     if (!parsedRows.length) {
       alert("No valid timeline rows found.");
       return;
@@ -299,13 +317,14 @@ updateButton?.addEventListener("click", function (event) {
     playList = parsedRows.map((row) => ({
       videoId,
       start: row.start,
-      end: row.end,
+      end: row.end || (row.start + defaultDuration),
       title: row.title,
     }));
   }
 
   currentId = 0;
   activeLibraryName = null; // 重新輸入視為新歌單
+  updatePlayList(); // 立即更新 UI 計數
   syncInputFieldsFromPlaylist();
   playByIndex(currentId);
   refreshLibraryUI();
@@ -451,6 +470,7 @@ importLibraryInput?.addEventListener("change", function (event) {
 
 // This function is now only used for the current playlist export
 function getSafeExportFileName() {
+  const player = yt.getPlayer();
   const rawTitle =
     player &&
     typeof player.getVideoData === "function" &&
@@ -538,6 +558,20 @@ importFileInput?.addEventListener("change", function (event) {
   reader.readAsText(file);
 });
 
+function togglePlaylistCollapse() {
+  isPlaylistCollapsed = !isPlaylistCollapsed;
+  applyPlaylistCollapse();
+  saveToStorage();
+}
+
+function applyPlaylistCollapse() {
+  const topSection = document.querySelector('.top-section');
+  const expandBtn = document.getElementById('playlist-expand-btn');
+  if (!topSection) return;
+  topSection.classList.toggle('playlist-hidden', isPlaylistCollapsed);
+  if (expandBtn) expandBtn.style.display = isPlaylistCollapsed ? 'block' : 'none';
+}
+
 loadFromStorage();
 updatePlayList();
 syncInputFieldsFromPlaylist();
@@ -545,6 +579,11 @@ syncInputFieldsFromPlaylist();
 if (inputModeSelect) applyInputMode(inputModeSelect.value);
 updateAudioOnlyButtonLabel();
 videoContainer?.classList.toggle("audio-only", isAudioOnlyMode);
+applyPlaylistCollapse();
+
+document.getElementById('playlist-collapse-btn')?.addEventListener('click', togglePlaylistCollapse);
+document.getElementById('playlist-expand-btn')?.addEventListener('click', togglePlaylistCollapse);
+
 refreshLibraryUI();
 
 const libraryToggle = document.getElementById("library-toggle");
@@ -559,66 +598,28 @@ if (libraryToggle && libraryPanel) {
   libraryPanel.classList.toggle("library-collapsed", isLibraryCollapsed);
 }
 
-let player; // Declare player globally
-
-window.onYouTubeIframeAPIReady = function() {
-  player = new YT.Player("video-youtube", {
-    height: "500px",
-    width: "1000px",
-    videoId: playList[currentId] && playList[currentId].videoId ? playList[currentId].videoId : "", // Handle empty playlist
-    playerVars: { // 修正參數名稱從 playerlets 改為 playerVars
-      autoplay: 0, // Autoplay is generally not allowed without user interaction
-      start: playList[currentId] && playList[currentId].start !== undefined ? playList[currentId].start : 0, // Handle empty playlist or undefined start
-      end: playList[currentId] && playList[currentId].end !== undefined ? playList[currentId].end : 0, // Handle empty playlist or undefined end
-    },
-    events: {
-      onStateChange: videoPlay,
-      onError: onPlayerError
-    },
-  });
-  ui.updateTitles(player, playList, currentId);
-  updatePlayPauseButtonLabel();
-};
-
-// 載入 YouTube IFrame API (放在定義回調之後更安全)
-let tag = document.createElement("script");
-tag.src = "https://www.youtube.com/iframe_api";
-const firstScriptTag = document.getElementsByTagName('script')[0];
-if (firstScriptTag && firstScriptTag.parentNode) {
-  firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-} else {
-  document.head.appendChild(tag);
-}
-
-let debouncing = false;
-
-function onPlayerError(event) {
-  console.error("YouTube Player Error:", event.data);
-  // 如果影片無法播放，2秒後自動跳下一首
-  setTimeout(playNext, 2000);
-}
-
-function videoPlay(event) {
-  if (event.data == YT.PlayerState.PLAYING) {
-    debouncing = false;
-    console.log("YouTube Video is PLAYING!!");
-  }
-  if (event.data == YT.PlayerState.PAUSED) {
-    console.log("YouTube Video is PAUSED!!");
-  }
-  ui.updateTitles(player, playList, currentId);
-  updatePlayPauseButtonLabel();
-
-  // after loading next video, before starting the next one, one extra end event will be passed,
-  // so need this debouncing logic
-  if (debouncing) return;
-  if (event.data == YT.PlayerState.ENDED) {
-    debouncing = true;
-    console.log("YouTube Video is ENDING!!");
-    if (currentId < playList.length - 1) {
-      playNext();
-      return;
+// 初始化 YouTube 播放器
+yt.initPlayer({
+  videoId: playList[currentId]?.videoId || "",
+  start: playList[currentId]?.start || 0,
+  end: playList[currentId]?.end || 0,
+  onReady: (playerInstance) => {
+    ui.updateTitles(playerInstance, playList, currentId);
+    updatePlayPauseButtonLabel();
+  },
+  onStateChange: (event, shouldPlayNext) => {
+    ui.updateTitles(yt.getPlayer(), playList, currentId);
+    updatePlayPauseButtonLabel();
+    if (shouldPlayNext) {
+      if (currentId < playList.length - 1) {
+        playNext();
+      } else {
+        updatePlayList();
+      }
     }
-    updatePlayList();
+  },
+  onError: (event) => {
+    console.error("YouTube Player Error:", event.data);
+    setTimeout(playNext, 2000);
   }
-}
+});
