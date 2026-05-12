@@ -10,6 +10,7 @@ let playList = [
     videoId: "dQw4w9WgXcQ", // Default to a well-known video
     start: 0,
     end: 200,
+    title: "Rick Astley - Never Gonna Give You Up",
   },
 ];
 

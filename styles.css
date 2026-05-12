@@ -344,7 +344,8 @@ body {
     font-weight: 500;
 }
 
-.lib-del-btn {
+.lib-del-btn,
+#playlist-collapse-btn {
     background: transparent;
     border: none;
     color: #666;
@@ -354,7 +355,8 @@ body {
     transition: color 0.2s;
 }
 
-.lib-del-btn:hover {
+.lib-del-btn:hover,
+#playlist-collapse-btn:hover {
     color: #ff4d4d;
 }
 
