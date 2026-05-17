@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/pure-min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/purecss@3.0.0/build/grids-responsive-min.css">
     <link rel="stylesheet" href="styles.css">
+    <!-- Google API Client Library -->
+    <script src="https://apis.google.com/js/client.js"></script>
+    <!-- Google Sign-In SDK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         /* 優化輸入欄位的標籤樣式 */
         .panel label {
@@ -23,50 +27,113 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
         /* 修正位於 Flex 容器內的標籤樣式，避免垂直偏移 */
-        #duration-setting-wrapper label, 
+        #duration-setting-wrapper label,
         label[for="playlist-timelines"],
         label[for="input-mode"] {
             display: inline-block;
             margin: 0;
         }
+
         /* 調整 Video URL 標籤上方的間距 */
         label[for="playlist-video-url"] {
-            margin-top: 1px; /* 減少與上方 Input Mode 區塊的間距 */
+            margin-top: 1px;
+            /* 減少與上方 Input Mode 區塊的間距 */
+        }
+
+        /* 登入面板樣式 */
+        #auth-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #333;
+            gap: 20px;
+        }
+
+        #user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #f1f1f1;
+        }
+
+        #user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        #logout-button {
+            background-color: #555 !important;
+            color: #ffffff !important;
+            padding: 4px 12px !important;
+            font-size: 0.9em !important;
+            margin-left: 10px !important;
+        }
+
+        #logout-button:hover {
+            background-color: #777 !important;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1 id="main-video-title" class="main-video-title">YouTube Playlist Manager</h1>
+        <!-- 登入面板 -->
+        <div id="auth-panel">
+            <h1 id="main-video-title" class="main-video-title">YouTube Playlist Manager</h1>
+            <div id="auth-container" style="display: flex; gap: 10px; align-items: center;">
+                <div id="buttonDiv"></div>
+                <div id="user-info" style="display: none;">
+                    <img id="user-avatar" alt="User Avatar">
+                    <span id="user-email"></span>
+                    <button id="test-yt-button" type="button" class="pure-button"
+                        style="background-color: #4285F4 !important; color: #ffffff !important; padding: 4px 12px !important; font-size: 0.9em !important; margin-left: 10px !important;"
+                        title="驗證 YouTube 連接">🔗 測試 YT 連接</button>
+                    <button id="logout-button" type="button" class="pure-button">登出</button>
+                </div>
+            </div>
+        </div>
+
         <h2 id="current-track-title" class="current-track-title"></h2>
         <div class="pure-g top-section">
             <div id="video-col" class="pure-u-1 pure-u-lg-2-3">
                 <div class="video-container">
                     <div id="video-youtube"></div>
                     <div id="audio-only-mask" class="audio-only-mask" aria-hidden="true"></div>
-                    <button id="playlist-expand-btn" class="pure-button" style="display: none; position: absolute; right: 10px; top: 10px; z-index: 20; background: #ff0000; color: white; opacity: 0.7;" title="Expand Playlist">◀</button>
+                    <button id="playlist-expand-btn" class="pure-button"
+                        style="display: none; position: absolute; right: 10px; top: 10px; z-index: 20; background: #ff0000; color: white; opacity: 0.7;"
+                        title="Expand Playlist">◀</button>
                 </div>
             </div>
             <div id="playlist-col" class="pure-u-1 pure-u-lg-1-3">
                 <div class="playlist-panel">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px;">
                         <h2 style="margin: 0;">
-                            🎤 Playlist 
-                            <span id="playlist-count" style="font-size: 0.7em; font-weight: bold; color: #aba3a3; margin-left: 10px;">(0 / 0)</span>
+                            🎤 Playlist
+                            <span id="playlist-count"
+                                style="font-size: 0.7em; font-weight: bold; color: #aba3a3; margin-left: 10px;">(0 /
+                                0)</span>
                         </h2>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <button id="audio-only-button" type="button" class="pure-button" style="font-size: 0.7em; padding: 4px 8px; white-space: nowrap; background-color: #555; color: #ffffff;">
-                                🎧 Audio Only: Off (C)
-                            </button>
-                            <span id="playlist-collapse-btn" style="user-select: none;" title="Collapse Playlist">✕</span>
+                        <div style="display: flex; align-items: center; gap: 4px;">
+
+                            <button id="playlist-collapse-btn" class="mode-button close-button"
+                                style="user-select: none;" title="Collapse Playlist">✕</button>
                         </div>
                     </div>
                     <div class="playlist-controls">
-                        <button id="prev-button" type="button" class="pure-button" style="background-color: #555; color: #ffffff;">⏮ Prev (Z)</button>
-                        <button id="play-pause-button" type="button" class="pure-button" style="background-color: #555; color: #ffffff;">⏯ Play/Pause (Space)</button>
-                        <button id="next-button" type="button" class="pure-button" style="background-color: #555; color: #ffffff;">⏭ Next (X)</button>
+                        <button id="prev-button" type="button" class="pure-button" title="上一首 (Z)">⏮ Prev (z)</button>
+                        <button id="play-pause-button" type="button" class="pure-button" title="播放/暫停 (Space)">⏯
+                            (space)</button>
+                        <button id="next-button" type="button" class="pure-button" title="下一首 (X)">⏭ Next (x)</button>
+                        <button id="audio-only-button" class="pure-button mode-button" title="切換純音訊模式">
+                            Audio only (c)
+                        </button>
+                        <button id="autoplay-toggle" class="pure-button mode-button" title="切換自動播放" style="display: none;">Autoplay</button>
                     </div>
                     <div id="play-list" class="playlist-items"></div>
                 </div>
@@ -78,9 +145,10 @@
                 <div class="panel">
                     <h2>🎵 Input Playlist</h2>
                     <div class="pure-g">
-                    <div class="pure-u-1" style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
-                        <label for="input-mode" style="white-space: nowrap;">Input Mode</label>
-                        <select id="input-mode" class="pure-input-1" style="width: auto; margin-bottom: 0;">
+                        <div class="pure-u-1"
+                            style="display: flex; align-items: center; gap: 15px; margin-bottom: 20px;">
+                            <label for="input-mode" style="white-space: nowrap;">Input Mode</label>
+                            <select id="input-mode" class="pure-input-1" style="width: auto; margin-bottom: 0;">
                                 <option value="json">JSON</option>
                                 <option value="text" selected>Text</option>
                             </select>
@@ -95,10 +163,14 @@
                     <div id="text-mode-panel" style="display: none;">
                         <label for="playlist-video-url">Video URL</label>
                         <input type="text" id="playlist-video-url" class="pure-input-1"
-                            placeholder="https://www.youtube.com/watch?v=...">
+                            placeholder="https://www.youtube.com/watch?v=dQw4w9WgXcQ">
 
                         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-                            <label for="playlist-timelines">Timeline Text</label>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label for="playlist-timelines" style="margin: 0;">Timeline Text</label>
+                                <button id="auto-timeline-btn" type="button" class="mode-button"
+                                    style="background-color: #ff0000;" title="Auto-fill from top comment">AUTO</button>
+                            </div>
 
                             <div id="duration-setting-wrapper"
                                 style="display: flex; align-items: center; justify-content: flex-end; gap: 6px;">
@@ -108,18 +180,22 @@
                             </div>
                         </div>
                         <textarea id="playlist-timelines" class="pure-input-1" rows="10"
-                            placeholder="01. 00:00:00 ~ Never Gonna Give You Up"></textarea>
+                            placeholder="00:00:00 00:03:20 Rick Astley - Never Gonna Give You Up"></textarea>
                     </div>
 
-                    <button id="update-button" class="pure-button pure-button-block" style="background-color: #555; color: #ffffff;">
+                    <button id="update-button" class="pure-button pure-button-block"
+                        style="background-color: #555; color: #ffffff;">
                         🔄 Update and Play
                     </button>
-                    <button id="save-playlist-button" class="pure-button pure-button-block" style="background-color: #555; color: #ffffff;">💾 Save
+                    <button id="save-playlist-button" class="pure-button pure-button-block"
+                        style="background-color: #555; color: #ffffff;">💾 Save
                         Playlist to Library</button>
-                    <button id="import-button" class="pure-button pure-button-block" style="background-color: #555; color: #ffffff;">
+                    <button id="import-button" class="pure-button pure-button-block"
+                        style="background-color: #555; color: #ffffff;">
                         📥 Import Playlist
                     </button>
-                    <button id="export-button" class="pure-button pure-button-block" style="background-color: #555; color: #ffffff;">
+                    <button id="export-button" class="pure-button pure-button-block"
+                        style="background-color: #555; color: #ffffff;">
                         📤 Export Playlist
                     </button>
                     <input id="import-file-input" type="file" accept=".json,application/json" style="display: none;">
@@ -136,9 +212,11 @@
                         <div id="library-list" class="playlist-items library-items">
                             <!-- Library items will be rendered here -->
                         </div>
-                        <button id="import-library-button" class="pure-button pure-button-block" style="background-color: #555; color: #ffffff;">📥 Import Playlists to
+                        <button id="import-library-button" class="pure-button pure-button-block"
+                            style="background-color: #555; color: #ffffff;">📥 Import Playlists to
                             Library</button>
-                        <button id="export-library-button" class="pure-button pure-button-block" style="background-color: #555; color: #ffffff;">📤 Export Entire
+                        <button id="export-library-button" class="pure-button pure-button-block"
+                            style="background-color: #555; color: #ffffff;">📤 Export Entire
                             Library</button>
                         <input id="import-library-input" type="file" accept=".json,application/json" multiple
                             style="display: none;">
@@ -149,8 +227,10 @@
 
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #333;">
             <div style="display: flex; flex-direction: column; align-items: center; gap: 10px;">
-                <a href="https://github.com/philly12399/youtube-playlist" target="_blank" class="pure-button" style="background-color: #333; color: white; border-radius: 20px; padding: 0.6em 1.5em; text-decoration: none; font-size: 0.9em; display: inline-flex; align-items: center;">
-                    <img src="https://github.com/favicon.ico" alt="GitHub" style="width: 18px; height: 18px; margin-right: 8px; filter: invert(1);">
+                <a href="https://github.com/philly12399/youtube-playlist" target="_blank" class="pure-button"
+                    style="background-color: #333; color: white; border-radius: 20px; padding: 0.6em 1.5em; text-decoration: none; font-size: 0.9em; display: inline-flex; align-items: center;">
+                    <img src="https://github.com/favicon.ico" alt="GitHub"
+                        style="width: 18px; height: 18px; margin-right: 8px; filter: invert(1);">
                     View on GitHub
                 </a>
                 <span id="version-display" style="color: #666; font-size: 0.8em; font-family: monospace;"></span>

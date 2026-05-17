@@ -142,17 +142,19 @@ body {
 
 .playlist-controls {
     display: flex;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 12px;
+    justify-content: flex-start;
 }
 
 .playlist-controls .pure-button {
-    flex: 1;
     background: #555;
     color: #fff;
     border: 1px solid #666;
     font-size: 0.85em;
-    padding: 6px 12px;
+    padding: 6px 8px;
+    white-space: nowrap;
+    border-radius: 6px;
 }
 
 .playlist-controls .pure-button:hover {
@@ -214,7 +216,7 @@ body {
 
 /* Form Styling */
 #playlist-object {
-    background: #121212;
+    background: #3e3e3e;
     color: #22c55e;
     border: 1px solid #333;
     border-radius: 6px;
@@ -422,4 +424,81 @@ body {
 
 #toast-notification.toast-error {
     background-color: #dc3545; /* Red for error */
+}
+
+/* 留言板樣式優化 */
+.comments-container {
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.comments-list {
+    max-height: 400px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 5px;
+}
+
+.comment-card {
+    background: #282828;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border-left: 3px solid #ff0000;
+}
+
+.comment-card:not(:last-child) {
+    border-bottom: 1px solid #555; /* 加深分隔線顏色 */
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+}
+
+.comment-author {
+    font-weight: bold;
+    color: #ff4d4d;
+    font-size: 0.9em;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.comment-text {
+    color: #ddd;
+    line-height: 1.5;
+    font-size: 0.95em;
+    white-space: pre-wrap !important; /* 強制保留換行 */
+    word-break: break-word;
+}
+
+/* Mode Buttons (Autoplay / Audio / AUTO) */
+.mode-button {
+    font-size: 0.65em;
+    padding: 2px 7px;
+    background: #272727;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    line-height: 1.2;
+    font-weight: 600;
+    cursor: pointer;
+    transition:
+        background 0.15s ease,
+        transform 0.1s ease;
+}
+
+.mode-button:hover {
+    background: #3a3a3a;
+}
+
+.mode-button:active {
+    transform: scale(0.96);
+}
+
+.mode-button.on {
+    background: #28a745 !important; /* 開啟時顯示綠色 */
+}
+
+.close-button {
+    padding: 2px 6px;
+    min-width: unset;
 }
